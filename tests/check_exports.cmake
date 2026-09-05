@@ -1,0 +1,18 @@
+if(NOT DEFINED MODULE OR NOT DEFINED INSPECTOR OR NOT DEFINED STYLE)
+    message(FATAL_ERROR "MODULE, INSPECTOR, and STYLE are required")
+endif()
+if(STYLE STREQUAL "MSVC")
+    execute_process(COMMAND "${INSPECTOR}" /exports "${MODULE}"
+        RESULT_VARIABLE result OUTPUT_VARIABLE symbols ERROR_VARIABLE error)
+else()
+    execute_process(COMMAND "${INSPECTOR}" -g "${MODULE}"
+        RESULT_VARIABLE result OUTPUT_VARIABLE symbols ERROR_VARIABLE error)
+endif()
+if(NOT result EQUAL 0)
+    message(FATAL_ERROR "symbol inspection failed: ${error}")
+endif()
+foreach(name fwguiPluginQuery fwguiPluginCreate)
+    if(NOT symbols MATCHES "${name}")
+        message(FATAL_ERROR "missing export ${name}")
+    endif()
+endforeach()

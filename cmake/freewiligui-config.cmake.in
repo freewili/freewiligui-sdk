@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+include("${CMAKE_CURRENT_LIST_DIR}/freewiligui-targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/FreeWiliGuiPlugin.cmake")
+set(FREEWILIGUI_SDK_DIR "${PACKAGE_PREFIX_DIR}")
+check_required_components(freewiligui)

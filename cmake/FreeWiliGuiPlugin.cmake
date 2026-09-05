@@ -1,0 +1,176 @@
+if(DEFINED FREEWILIGUI_PLUGIN_CMAKE_INCLUDED)
+    return()
+endif()
+set(FREEWILIGUI_PLUGIN_CMAKE_INCLUDED TRUE)
+
+include(CMakeParseArguments)
+include(FetchContent)
+
+set(FREEWILIGUI_IMGUI_REPOSITORY "https://github.com/ocornut/imgui.git"
+    CACHE STRING "Dear ImGui repository")
+set(FREEWILIGUI_IMGUI_TAG "v1.92.8-docking"
+    CACHE STRING "Dear ImGui tag")
+set(FREEWILIGUI_IMPLOT_REPOSITORY "https://github.com/epezent/implot.git"
+    CACHE STRING "ImPlot repository")
+set(FREEWILIGUI_IMPLOT_TAG "v1.0"
+    CACHE STRING "ImPlot tag")
+set(FREEWILIGUI_IMGUI_TARGET "" CACHE STRING "Existing Dear ImGui target")
+set(FREEWILIGUI_IMPLOT_TARGET "" CACHE STRING "Existing ImPlot target")
+set(FREEWILIGUI_IMGUI_DIR "" CACHE PATH "Local Dear ImGui source directory")
+set(FREEWILIGUI_IMPLOT_DIR "" CACHE PATH "Local ImPlot source directory")
+option(FREEWILIGUI_IMGUI_TEST_ENGINE "Match a host built with the UI test engine" ON)
+set(FREEWILIGUI_IMGUI_TEST_ENGINE_STUBS "AUTO" CACHE STRING
+    "UI test hook stubs for shared plugins: AUTO, ON, or OFF")
+set_property(CACHE FREEWILIGUI_IMGUI_TEST_ENGINE_STUBS PROPERTY STRINGS AUTO ON OFF)
+set(FREEWILIGUI_PLUGIN_MSVC_RUNTIME "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    CACHE STRING "MSVC runtime used by standalone plugins")
+
+function(_freewiligui_dependencies out_imgui out_implot)
+    if(FREEWILIGUI_IMGUI_TARGET)
+        if(NOT TARGET "${FREEWILIGUI_IMGUI_TARGET}")
+            message(FATAL_ERROR "FREEWILIGUI_IMGUI_TARGET does not name a target")
+        endif()
+        set(_imgui "${FREEWILIGUI_IMGUI_TARGET}")
+    else()
+        if(FREEWILIGUI_IMGUI_DIR)
+            set(_imgui_src "${FREEWILIGUI_IMGUI_DIR}")
+        else()
+            FetchContent_Declare(freewiligui_imgui_src
+                GIT_REPOSITORY "${FREEWILIGUI_IMGUI_REPOSITORY}"
+                GIT_TAG "${FREEWILIGUI_IMGUI_TAG}"
+                GIT_SHALLOW TRUE)
+            FetchContent_MakeAvailable(freewiligui_imgui_src)
+            set(_imgui_src "${freewiligui_imgui_src_SOURCE_DIR}")
+        endif()
+        if(NOT TARGET freewiligui_imgui)
+            add_library(freewiligui_imgui STATIC
+                "${_imgui_src}/imgui.cpp"
+                "${_imgui_src}/imgui_draw.cpp"
+                "${_imgui_src}/imgui_tables.cpp"
+                "${_imgui_src}/imgui_widgets.cpp")
+            target_include_directories(freewiligui_imgui PUBLIC "${_imgui_src}")
+            set_target_properties(freewiligui_imgui PROPERTIES POSITION_INDEPENDENT_CODE ON)
+            if(MSVC)
+                set_property(TARGET freewiligui_imgui PROPERTY
+                    MSVC_RUNTIME_LIBRARY "${FREEWILIGUI_PLUGIN_MSVC_RUNTIME}")
+            endif()
+            if(FREEWILIGUI_IMGUI_TEST_ENGINE)
+                target_compile_definitions(freewiligui_imgui PUBLIC IMGUI_ENABLE_TEST_ENGINE)
+            endif()
+        endif()
+        set(_imgui freewiligui_imgui)
+    endif()
+
+    if(FREEWILIGUI_IMPLOT_TARGET)
+        if(NOT TARGET "${FREEWILIGUI_IMPLOT_TARGET}")
+            message(FATAL_ERROR "FREEWILIGUI_IMPLOT_TARGET does not name a target")
+        endif()
+        set(_implot "${FREEWILIGUI_IMPLOT_TARGET}")
+    else()
+        if(FREEWILIGUI_IMPLOT_DIR)
+            set(_implot_src "${FREEWILIGUI_IMPLOT_DIR}")
+        elseif(FREEWILIGUI_IMGUI_DIR AND EXISTS "${FREEWILIGUI_IMGUI_DIR}/implot.cpp")
+            set(_implot_src "${FREEWILIGUI_IMGUI_DIR}")
+        else()
+            FetchContent_Declare(freewiligui_implot_src
+                GIT_REPOSITORY "${FREEWILIGUI_IMPLOT_REPOSITORY}"
+                GIT_TAG "${FREEWILIGUI_IMPLOT_TAG}"
+                GIT_SHALLOW TRUE)
+            FetchContent_MakeAvailable(freewiligui_implot_src)
+            set(_implot_src "${freewiligui_implot_src_SOURCE_DIR}")
+        endif()
+        if(NOT TARGET freewiligui_implot)
+            add_library(freewiligui_implot STATIC
+                "${_implot_src}/implot.cpp"
+                "${_implot_src}/implot_items.cpp")
+            target_include_directories(freewiligui_implot PUBLIC "${_implot_src}")
+            target_link_libraries(freewiligui_implot PUBLIC "${_imgui}")
+            set_target_properties(freewiligui_implot PROPERTIES POSITION_INDEPENDENT_CODE ON)
+            if(MSVC)
+                set_property(TARGET freewiligui_implot PROPERTY
+                    MSVC_RUNTIME_LIBRARY "${FREEWILIGUI_PLUGIN_MSVC_RUNTIME}")
+            endif()
+        endif()
+        set(_implot freewiligui_implot)
+    endif()
+    set(${out_imgui} "${_imgui}" PARENT_SCOPE)
+    set(${out_implot} "${_implot}" PARENT_SCOPE)
+endfunction()
+
+function(_freewiligui_links_test_engine target out_var)
+    set(_found FALSE)
+    if(TARGET "${target}")
+        get_target_property(_links "${target}" LINK_LIBRARIES)
+        get_target_property(_interface_links "${target}" INTERFACE_LINK_LIBRARIES)
+        foreach(_entry IN LISTS _links _interface_links)
+            if(_entry MATCHES "[Tt][Ee][Ss][Tt]_?[Ee][Nn][Gg][Ii][Nn][Ee]")
+                set(_found TRUE)
+            endif()
+        endforeach()
+    endif()
+    set(${out_var} "${_found}" PARENT_SCOPE)
+endfunction()
+
+function(freewiligui_add_plugin name)
+    cmake_parse_arguments(ARG "" "ID;SYMBOL;OUTPUT_NAME;PLUGIN_OUTPUT_DIRECTORY"
+        "SOURCES" ${ARGN})
+    if(NOT ARG_ID OR NOT ARG_SYMBOL OR NOT ARG_SOURCES)
+        message(FATAL_ERROR "freewiligui_add_plugin requires ID, SYMBOL, and SOURCES")
+    endif()
+    string(TOUPPER "${name}" _upper)
+    string(REGEX REPLACE "[^A-Z0-9]" "_" _upper "${_upper}")
+    set(_mode_var "FREEWILIGUI_PLUGIN_${_upper}")
+    set(${_mode_var} "SHARED" CACHE STRING "Build ${name}: SHARED, STATIC, or OFF")
+    set_property(CACHE ${_mode_var} PROPERTY STRINGS SHARED STATIC OFF)
+    string(TOUPPER "${${_mode_var}}" _mode)
+    if(_mode STREQUAL "OFF")
+        return()
+    elseif(_mode STREQUAL "STATIC")
+        add_library(${name} STATIC ${ARG_SOURCES})
+        target_compile_definitions(${name} PRIVATE FWGUI_PLUGIN_STATIC)
+        set_property(GLOBAL APPEND PROPERTY FREEWILIGUI_STATIC_PLUGINS
+            "${ARG_ID}|${ARG_SYMBOL}|${name}")
+    elseif(_mode STREQUAL "SHARED")
+        add_library(${name} MODULE ${ARG_SOURCES})
+        target_compile_definitions(${name} PRIVATE FWGUI_PLUGIN_SHARED)
+    else()
+        message(FATAL_ERROR "${_mode_var} must be SHARED, STATIC, or OFF")
+    endif()
+    _freewiligui_dependencies(_imgui _implot)
+    target_link_libraries(${name} PRIVATE freewiligui::sdk "${_imgui}" "${_implot}")
+    target_compile_features(${name} PRIVATE cxx_std_17)
+    if(FREEWILIGUI_IMGUI_TEST_ENGINE)
+        target_compile_definitions(${name} PRIVATE IMGUI_ENABLE_TEST_ENGINE)
+        if(_mode STREQUAL "SHARED")
+            string(TOUPPER "${FREEWILIGUI_IMGUI_TEST_ENGINE_STUBS}" _stub_mode)
+            if(_stub_mode STREQUAL "AUTO")
+                _freewiligui_links_test_engine("${_imgui}" _has_test_engine)
+                if(NOT _has_test_engine)
+                    target_sources(${name} PRIVATE
+                        "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/imgui_test_engine_stubs.cpp")
+                endif()
+            elseif(_stub_mode STREQUAL "ON")
+                target_sources(${name} PRIVATE
+                    "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/imgui_test_engine_stubs.cpp")
+            elseif(NOT _stub_mode STREQUAL "OFF")
+                message(FATAL_ERROR
+                    "FREEWILIGUI_IMGUI_TEST_ENGINE_STUBS must be AUTO, ON, or OFF")
+            endif()
+        endif()
+    endif()
+    if(MSVC)
+        set_property(TARGET ${name} PROPERTY MSVC_RUNTIME_LIBRARY
+            "${FREEWILIGUI_PLUGIN_MSVC_RUNTIME}")
+    endif()
+    if(ARG_OUTPUT_NAME)
+        set_target_properties(${name} PROPERTIES OUTPUT_NAME "${ARG_OUTPUT_NAME}")
+    endif()
+    if(ARG_PLUGIN_OUTPUT_DIRECTORY)
+        set_target_properties(${name} PROPERTIES
+            LIBRARY_OUTPUT_DIRECTORY "${ARG_PLUGIN_OUTPUT_DIRECTORY}"
+            RUNTIME_OUTPUT_DIRECTORY "${ARG_PLUGIN_OUTPUT_DIRECTORY}")
+    endif()
+    if(WIN32 AND _mode STREQUAL "SHARED")
+        set_target_properties(${name} PROPERTIES PREFIX "")
+    endif()
+endfunction()

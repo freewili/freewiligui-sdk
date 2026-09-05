@@ -1,0 +1,5 @@
+#ifndef FREEWILIGUI_TEST_GUI_STUBS_H
+#define FREEWILIGUI_TEST_GUI_STUBS_H
+extern float freewiligui_test_image_width;
+extern float freewiligui_test_image_height;
+#endif
