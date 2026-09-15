@@ -1,4 +1,7 @@
 /build/
+/example-build/
+/plugin-build/
+/sdk-install/
 /plugins/
 /.cache/
 *.user
