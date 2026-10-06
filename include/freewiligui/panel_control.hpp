@@ -71,17 +71,36 @@ template<class T> struct ControlThunks {
         } catch (...) {}
     }
     static void Destroy(void* s) noexcept { delete static_cast<T*>(s); }
+    // Paint, Input and PropertyChanged exceptions are contained (the control
+    // keeps running); the first one per control type goes to the host log.
+    static void CallbackThrew(const T& self, const char* callback, const char* what) noexcept {
+        static bool logged = false;   // one per T; callbacks run on the UI thread
+        if (logged) return;
+        logged = true;
+        try {
+            const std::string m = std::string("panel control ") + callback + " threw (" + (what ? what : "") +
+                                  "); later exceptions from this control type are not logged";
+            self.control.GetHost().LogError(m.c_str());
+        } catch (...) {}
+    }
     static void Paint(void* s, FwGuiCanvas* c, const FwGuiPaintInfo* i) noexcept {
         if (!s || !i) return; auto* self = static_cast<T*>(s);
-        try { Canvas canvas = Canvas::Borrow(self->control.GetHost(), c); self->Paint(canvas, *i); } catch (...) {}
+        try { Canvas canvas = Canvas::Borrow(self->control.GetHost(), c); self->Paint(canvas, *i); }
+        catch (const std::exception& e) { CallbackThrew(*self, "paint", e.what()); }
+        catch (...) { CallbackThrew(*self, "paint", "unknown exception"); }
     }
     static int Input(void* s, const FwGuiInput* in) noexcept {
-        if (!s || !in) return 0;
-        try { return static_cast<T*>(s)->Input(*in) ? 1 : 0; } catch (...) { return 0; }
+        if (!s || !in) return 0; auto* self = static_cast<T*>(s);
+        try { return self->Input(*in) ? 1 : 0; }
+        catch (const std::exception& e) { CallbackThrew(*self, "input", e.what()); }
+        catch (...) { CallbackThrew(*self, "input", "unknown exception"); }
+        return 0;
     }
     static void PropertyChanged(void* s, const char* n) noexcept {
-        if (!s || !n) return;
-        try { static_cast<T*>(s)->PropertyChanged(std::string_view(n)); } catch (...) {}
+        if (!s || !n) return; auto* self = static_cast<T*>(s);
+        try { self->PropertyChanged(std::string_view(n)); }
+        catch (const std::exception& e) { CallbackThrew(*self, "property_changed", e.what()); }
+        catch (...) { CallbackThrew(*self, "property_changed", "unknown exception"); }
     }
 };
 }

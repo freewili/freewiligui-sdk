@@ -32,8 +32,17 @@ struct Throws {
     void Paint(fwgui::Canvas&, const FwGuiPaintInfo&) {}
     fwgui::Control control;
 };
-std::string g_log; FwGuiLogLevel g_logLevel = FWGUI_LOG_DEBUG;
-void logFn(FwGuiHost*, FwGuiPlugin*, FwGuiLogLevel level, const char* message) { g_logLevel = level; g_log = message ? message : ""; }
+// Callbacks that throw: each is contained, and the first one per control type
+// reaches the host log as an error.
+struct ThrowsLater {
+    explicit ThrowsLater(const fwgui::Control& c) : control(c) {}
+    void Paint(fwgui::Canvas&, const FwGuiPaintInfo&) { throw std::runtime_error("paint broke"); }
+    bool Input(const FwGuiInput&) { throw std::runtime_error("input broke"); }
+    void PropertyChanged(std::string_view) { throw 42; }
+    fwgui::Control control;
+};
+std::string g_log; FwGuiLogLevel g_logLevel = FWGUI_LOG_DEBUG; int g_logs = 0;
+void logFn(FwGuiHost*, FwGuiPlugin*, FwGuiLogLevel level, const char* message) { g_logLevel = level; g_log = message ? message : ""; ++g_logs; }
 }
 
 int main() {
@@ -90,5 +99,22 @@ int main() {
     assert(none == nullptr);
     assert(g_logLevel == FWGUI_LOG_ERROR);
     assert(g_log.find("create") != std::string::npos && g_log.find("no sensor") != std::string::npos);
+
+    // Paint, input and property_changed exceptions are contained and logged
+    // once per control type, not once per call.
+    fwgui::ControlTypeInfo linfo; linfo.id = "later"; linfo.label = "Later";
+    assert(fwgui::RegisterControlType<ThrowsLater>(host, linfo) == FWGUI_OK);
+    const FwGuiControlTypeDesc later = g_registered;
+    void* ls = later.callbacks.create(later.type_user, reinterpret_cast<FwGuiControl*>(0x3));
+    assert(ls);
+    g_logs = 0; g_log.clear(); g_logLevel = FWGUI_LOG_DEBUG;
+    later.callbacks.paint(ls, reinterpret_cast<FwGuiCanvas*>(0x4), &pi);
+    assert(g_logs == 1 && g_logLevel == FWGUI_LOG_ERROR);
+    assert(g_log.find("paint") != std::string::npos && g_log.find("paint broke") != std::string::npos);
+    later.callbacks.paint(ls, reinterpret_cast<FwGuiCanvas*>(0x4), &pi);
+    assert(later.callbacks.input(ls, &in) == 0);
+    later.callbacks.property_changed(ls, "value");
+    assert(g_logs == 1);
+    later.callbacks.destroy(ls);
     return 0;
 }
