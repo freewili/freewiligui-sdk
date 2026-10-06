@@ -12,3 +12,5 @@ Coordinates are pixels with the origin at the upper left. Colors are packed
 0xAARRGGBB. The API covers state, fill and stroke styles, paths, rectangles,
 text metrics, images, readback, line dashes, and transforms. Guard newer
 callbacks with FWGUI_HAS when using the C layer directly.
+
+Panel controls draw on a borrowed canvas; see [PANEL_CONTROLS.md](PANEL_CONTROLS.md).

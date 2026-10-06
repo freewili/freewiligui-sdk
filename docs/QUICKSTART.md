@@ -94,3 +94,5 @@ subdirectory when applicable). Install them the same way as the template.
 - [FreeWili dashboard](../examples/freewili_dashboard): device discovery,
   asynchronous jobs, cancellation, and an agent-readable status tool. This
   example also fetches JSON for Modern C++ from its public repository.
+
+- [Panel slider](../examples/example_panel_control): a Graphical Panel control with no ImGui dependency. To write your own, start from `plugin-template-control` and read [panel controls](PANEL_CONTROLS.md).

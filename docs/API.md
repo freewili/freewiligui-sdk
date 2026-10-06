@@ -39,3 +39,5 @@ instance's opaque values.
 For release audits, set FREEWILIGUI_PRIVACY_TERMS_FILE to an external,
 newline-delimited deny-list. The test suite scans source paths and contents
 for the supplied terms.
+
+Panel controls use the FwGuiPanelControlApi table, reached through the root table's panel_control field. Check FWGUI_HAS(api, panel_control) and a non-null pointer before use. See [panel controls](PANEL_CONTROLS.md) for its callbacks and rules.

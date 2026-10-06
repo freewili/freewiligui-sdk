@@ -1,2 +1,3 @@
 add_subdirectory(example_canvas)
 add_subdirectory(freewili_dashboard)
+add_subdirectory(example_panel_control)

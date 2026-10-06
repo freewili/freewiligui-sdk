@@ -1,16 +1,17 @@
 # FreeWili GUI SDK
 
 Build native plugins for [FreeWili GUI](https://github.com/freewili/freewili-gui)
-with a standalone C99 ABI and C++17 authoring layer. SDK version **0.1.0**
+with a standalone C99 ABI and C++17 authoring layer. SDK version **0.2.0**
 uses **ABI version 1**.
 
 ## Features
 
 - Dockable ImGui/ImPlot views and native Canvas drawing.
+- Graphical Panel controls with no ImGui dependency; see [panel controls](docs/PANEL_CONTROLS.md).
 - Host logging, persistent settings, and embedded Markdown help.
 - Agent tools with JSON Schema inputs.
 - Asynchronous FreeWili device commands, jobs, and event subscriptions.
-- An installable CMake package, a minimal plugin template, and two examples.
+- An installable CMake package, a minimal plugin template, a panel control template, and three examples.
 
 ## Get started
 
@@ -42,7 +43,7 @@ All calls and callbacks run on the host owner thread. Borrowed strings remain
 valid only for the current host callback or frame.
 
 See [API and ownership](docs/API.md),
-[Canvas](docs/CANVAS.md), [agent tools](docs/MCP.md), and
+[Canvas](docs/CANVAS.md), [panel controls](docs/PANEL_CONTROLS.md), [agent tools](docs/MCP.md), and
 [FreeWili devices](docs/FREEWILI.md).
 
 ## License
