@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstring>
 #include <string>
+#include <utility>
 #ifdef IMGUI_VERSION
 #error "panel_control.hpp must not pull in ImGui"
 #endif
@@ -13,6 +14,9 @@ FwGuiResult reg(FwGuiHost*, FwGuiPlugin*, const FwGuiControlTypeDesc* d) { g_reg
 double num(FwGuiHost*, FwGuiControl*, const char* n) { return std::strcmp(n, "value") == 0 ? 7.5 : 0; }
 FwGuiResult set(FwGuiHost*, FwGuiControl*, const char* n, const char* v) { g_lastSet = std::string(n) + "=" + v; return FWGUI_OK; }
 int g_destroyed = 0;
+int g_canvasCreated = 0, g_canvasDestroyed = 0;
+FwGuiCanvas* canvasCreate(FwGuiHost*, FwGuiPlugin*, int32_t, int32_t) { ++g_canvasCreated; return reinterpret_cast<FwGuiCanvas*>(0x5); }
+void canvasDestroy(FwGuiHost*, FwGuiCanvas*) { ++g_canvasDestroyed; }
 struct Box {
     explicit Box(const fwgui::Control& c) : control(c) {}
     ~Box() { ++g_destroyed; }
@@ -25,7 +29,9 @@ struct Box {
 int main() {
     FwGuiPanelControlApi panel{}; panel.struct_size = sizeof panel;
     panel.register_type = reg; panel.get_number = num; panel.set_property = set;
-    FwGuiHostApi api{}; api.struct_size = sizeof api; api.panel_control = &panel;
+    FwGuiCanvasApi canvasApi{}; canvasApi.struct_size = sizeof canvasApi;
+    canvasApi.create = canvasCreate; canvasApi.destroy = canvasDestroy;
+    FwGuiHostApi api{}; api.struct_size = sizeof api; api.panel_control = &panel; api.canvas = &canvasApi;
     fwgui::Host host(reinterpret_cast<FwGuiHost*>(0x1), &api, reinterpret_cast<FwGuiPlugin*>(0x2));
 
     fwgui::ControlTypeInfo info; info.id = "box"; info.label = "Box"; info.width = 50; info.height = 20;
@@ -44,7 +50,26 @@ int main() {
     g_registered.callbacks.destroy(state);
     assert(g_destroyed == 1);
 
-    // A borrowed canvas never destroys its handle.
-    { fwgui::Canvas borrowed = fwgui::Canvas::Borrow(host, reinterpret_cast<FwGuiCanvas*>(0x4)); assert(borrowed); }
+    // A borrowed canvas never destroys its handle, even when moved.
+    {
+        fwgui::Canvas borrowed = fwgui::Canvas::Borrow(host, reinterpret_cast<FwGuiCanvas*>(0x4));
+        assert(borrowed);
+    }
+    assert(g_canvasDestroyed == 0);
+    {
+        fwgui::Canvas b1 = fwgui::Canvas::Borrow(host, reinterpret_cast<FwGuiCanvas*>(0x4));
+        fwgui::Canvas moved(std::move(b1));
+        fwgui::Canvas assigned;
+        assigned = std::move(moved);
+        assert(assigned && !moved && !b1);
+    }
+    assert(g_canvasDestroyed == 0);
+
+    // An owned canvas destroys exactly once.
+    {
+        fwgui::Canvas owned(host, 10, 10);
+        assert(owned && g_canvasCreated == 1);
+    }
+    assert(g_canvasDestroyed == 1);
     return 0;
 }
