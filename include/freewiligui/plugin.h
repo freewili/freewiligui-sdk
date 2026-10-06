@@ -60,7 +60,18 @@ typedef struct FwGuiBuildFingerprint {
 
 /* A plugin that never links ImGui/ImPlot (panel controls, MCP tools).
  * Set FWGUI_PLUGIN_NO_IMGUI in FwGuiPluginDesc.flags with this fingerprint. */
-#define FWGUI_FINGERPRINT_INIT_NO_IMGUI           {                                                 (uint32_t)FWGUI_ABI_VERSION, 0u, 0u, 0u, 0u,         FWGUI_FP_DEBUG_BUILD, FWGUI_FP_MSC_VER, FWGUI_FP_CRT_DYNAMIC, 0u     }
+#define FWGUI_FINGERPRINT_INIT_NO_IMGUI        \
+    {                                         \
+        (uint32_t)FWGUI_ABI_VERSION,           \
+        0u,                                     \
+        0u,                                     \
+        0u,                                     \
+        0u,                                     \
+        FWGUI_FP_DEBUG_BUILD,                   \
+        FWGUI_FP_MSC_VER,                       \
+        FWGUI_FP_CRT_DYNAMIC,                   \
+        0u                                      \
+    }
 
 typedef uint32_t FwGuiPluginFlags;
 enum FwGuiPluginFlagBits {
