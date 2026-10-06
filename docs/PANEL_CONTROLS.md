@@ -62,18 +62,39 @@ every value as text, saves it in the panel file, and shows it in the grid.
 | `FWGUI_PROP_COLOR` | Color | `#rrggbb` | Packed `0xAARRGGBB` |
 | `FWGUI_PROP_LIST` | Drop-down of `list_items` | The selected label | Zero-based index |
 | `FWGUI_PROP_FILE` | File path | The path | 0 |
-| `FWGUI_PROP_SIGNAL_READ` | Signal picker (read) | A signal or `=` expression | 0 |
-| `FWGUI_PROP_SIGNAL_WRITE` | Signal picker (write) | A signal name | 0 |
+| `FWGUI_PROP_SIGNAL_READ` | Signal picker (read) | A signal or rThon expression | 0 |
+| `FWGUI_PROP_SIGNAL_WRITE` | Signal picker (write) | A signal name, or rThon code after `=` | 0 |
 
 For INT and NUMBER, `min == max` means unbounded. `list_items` is a
-comma-separated list of labels. `get_string` returns a view that is valid until
-the next callback returns; copy it if you need it longer.
+comma-separated list of labels. `get_string` returns a view that stays valid
+until the current callback returns. Called outside every control callback (for
+example from your plugin's frame), the view stays valid until the end of the
+current frame. Later helper calls do not invalidate it. Copy it if you need it
+longer. The text that `read_signal` returns follows the same rule.
+
+The host reads the `properties` array with a stride of
+`properties[0].struct_size`. Every element must have the same `struct_size`,
+at least the SDK 0.2 size of `FwGuiPropertyDesc`; otherwise `register_type`
+fails with `FWGUI_ERR_INVALID_ARG`.
+
+Some names belong to the host's own control properties and cannot be used.
+`register_type` rejects these names (ignoring case) with
+`FWGUI_ERR_INVALID_ARG`:
+
+`alignment`, `anchorbottom`, `anchorleft`, `anchorright`, `anchortop`,
+`backcolor`, `backgroundrounding`, `borderstyle`, `caption`, `datakey`,
+`description`, `enabled`, `focushotkey`, `focushotkeyscope`, `fontbold`,
+`fontitalic`, `fontname`, `fontsize`, `fonttype`, `forecolor`, `height`, `key`,
+`layer`, `left`, `name`, `pathorder`, `refresh`, `showcaption`, `tag`,
+`tooltiptext`, `tooltiptype`, `top`, `transparent`, `type`, `typelabel`,
+`width`.
+
+The list is fixed for SDK 0.2.
 
 `set_property` changes a value at run time, for example when a slider moves.
-It calls `property_changed` and marks the panel modified, but it is not an
-undo step. A property that a saved file holds and your schema no longer
-declares is kept and saved again, so upgrading or downgrading a plugin does
-not lose data.
+It calls `property_changed`, but it is not an undo step. A property that a
+saved file holds and your schema no longer declares is kept and saved again,
+so upgrading or downgrading a plugin does not lose data.
 
 ## Signals
 
@@ -82,9 +103,11 @@ the grid offers the same signal picker as built-in controls. In C++ use
 `Control::ReadNumber`, `ReadText`, `Write` and `WriteText`; in C call
 `read_signal` and `write_signal`.
 
-- `read_signal` evaluates the property's binding. App signals, `=` rThon
+- `read_signal` evaluates the property's binding. App signals, rThon
   expressions and device providers work as they do for built-in controls.
-- `write_signal` sends numbers only. A text value is accepted only if it parses as a number.
+- `write_signal` sends numbers only. Text is sent as the number it spells
+  (white space around it is allowed). Any other text writes nothing and
+  returns `FWGUI_ERR_INVALID_ARG`.
 - An empty binding returns `FWGUI_ERR_NOT_FOUND`.
 
 ## Drawing
@@ -164,8 +187,12 @@ core, canvas, agent-tool, FreeWili and panel-control families.
 
 ## Upgrading from 0.1
 
-- `fwgui::Plugin<D>` is now an alias template of `fwgui::PluginBase<D, ImGuiBinder>`.
+- `fwgui::Plugin<D>` is now an alias template of `fwgui::PluginBase<D, detail::ImGuiBinder>`.
   Code that forward-declares `template<class> class Plugin` or befriends
   `fwgui::Plugin<D>` must be updated (use `PluginBase`).
+- Inside a class that derives from `fwgui::Plugin<D>`, the bare name `Plugin`
+  no longer names the base class, because an alias template has no
+  injected-class-name. Write `PluginBase` (the base's own injected-class-name)
+  or the full name `fwgui::Plugin<D>` instead.
 - `Canvas::DrawImGui` needs `imgui.h` (or `freewiligui/plugin.hpp`) included
   before `freewiligui/host.hpp`.

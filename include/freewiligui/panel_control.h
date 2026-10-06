@@ -93,6 +93,11 @@ typedef struct FwGuiInput {
     uint32_t codepoint;        /* CHAR: UTF-32 */
 } FwGuiInput;
 
+/* FROZEN: FwGuiControlCallbacks is embedded by value in the middle of
+ * FwGuiControlTypeDesc, so it never grows; its layout is fixed as of SDK 0.2
+ * (tests/test_headers.c pins it). A new callback is added as a trailing field
+ * of FwGuiControlTypeDesc, after type_user, and gated by that descriptor's
+ * struct_size. Set struct_size to sizeof(FwGuiControlCallbacks). */
 typedef struct FwGuiControlCallbacks {
     uint32_t struct_size;
     /* Returns the plugin's per-instance state (may be NULL). */
@@ -115,8 +120,9 @@ typedef struct FwGuiControlTypeDesc {
     double default_width, default_height;
     const FwGuiPropertyDesc* properties;
     uint32_t property_count;       /* <= 32 */
-    FwGuiControlCallbacks callbacks;
+    FwGuiControlCallbacks callbacks; /* frozen; see FwGuiControlCallbacks */
     void* type_user;
+    /* Later SDKs append fields here (new callbacks included). */
 } FwGuiControlTypeDesc;
 
 typedef struct FwGuiPanelControlApi {
@@ -125,11 +131,18 @@ typedef struct FwGuiPanelControlApi {
     FwGuiResult (*unregister_type)(FwGuiHost*, FwGuiPlugin*, const char* id);
     /* Instance helpers: UI thread only. */
     double (*get_number)(FwGuiHost*, FwGuiControl*, const char* name);
-    /* Valid until the current callback returns (or the next helper call). */
+    /* The returned text (and read_signal's out_text) stays valid until the
+     * current control callback returns; from outside every control callback
+     * (e.g. the plugin's frame), until the end of the current frame. Later
+     * helper calls do not invalidate it. Copy it to keep it longer. */
     FwGuiStrView (*get_string)(FwGuiHost*, FwGuiControl*, const char* name);
+    /* Stores the value and calls property_changed (after the current callback
+     * returns, when called from one). Not an undo step. */
     FwGuiResult (*set_property)(FwGuiHost*, FwGuiControl*, const char* name, const char* value);
     FwGuiResult (*read_signal)(FwGuiHost*, FwGuiControl*, const char* name,
                                double* out_number, FwGuiStrView* out_text, int32_t* out_is_text);
+    /* Writes number, or text_or_null when it is a number (white space around
+     * it is allowed). Other text writes nothing: FWGUI_ERR_INVALID_ARG. */
     FwGuiResult (*write_signal)(FwGuiHost*, FwGuiControl*, const char* name,
                                 double number, const char* text_or_null);
     FwGuiResult (*request_focus)(FwGuiHost*, FwGuiControl*);
