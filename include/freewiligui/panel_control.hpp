@@ -2,6 +2,7 @@
 #define FREEWILIGUI_PANEL_CONTROL_HPP
 // ImGui-free C++ helpers for panel controls. Never include ImGui from here.
 #include <freewiligui/host.hpp>
+#include <exception>
 #include <string>
 
 namespace fwgui {
@@ -53,8 +54,21 @@ template<class T,class=void> struct HasPropertyChanged : std::false_type {};
 template<class T> struct HasPropertyChanged<T, std::void_t<decltype(std::declval<T&>().PropertyChanged(std::string_view()))>> : std::true_type {};
 template<class T> struct ControlThunks {
     // type_user is a heap Host copy owned for the type's lifetime.
+    // A throwing constructor yields NULL state: the host keeps the control
+    // live but it draws nothing, so the reason goes to the host log.
     static void* Create(void* user, FwGuiControl* c) noexcept {
-        try { return new T(Control(*static_cast<Host*>(user), c)); } catch (...) { return nullptr; }
+        const Host& host = *static_cast<Host*>(user);
+        try { return new T(Control(host, c)); }
+        catch (const std::exception& e) { CreateFailed(host, e.what()); }
+        catch (...) { CreateFailed(host, "unknown exception"); }
+        return nullptr;
+    }
+    static void CreateFailed(const Host& host, const char* what) noexcept {
+        try {
+            const std::string m = std::string("panel control create failed: the control's constructor threw (") +
+                                  (what ? what : "") + "); this control will draw nothing";
+            host.LogError(m.c_str());
+        } catch (...) {}
     }
     static void Destroy(void* s) noexcept { delete static_cast<T*>(s); }
     static void Paint(void* s, FwGuiCanvas* c, const FwGuiPaintInfo* i) noexcept {

@@ -1,6 +1,7 @@
 #include <freewiligui/panel_control.hpp>
 #include <cassert>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #ifdef IMGUI_VERSION
@@ -24,6 +25,15 @@ struct Box {
     bool Input(const FwGuiInput& in) { control.Set("value", "9"); return in.kind == FWGUI_INPUT_MOUSE_DOWN; }
     fwgui::Control control; double painted_w = 0, value = 0;
 };
+// A constructor that throws: create returns NULL (the host binds a blank
+// control) and the reason reaches the host log as an error.
+struct Throws {
+    explicit Throws(const fwgui::Control& c) : control(c) { throw std::runtime_error("no sensor"); }
+    void Paint(fwgui::Canvas&, const FwGuiPaintInfo&) {}
+    fwgui::Control control;
+};
+std::string g_log; FwGuiLogLevel g_logLevel = FWGUI_LOG_DEBUG;
+void logFn(FwGuiHost*, FwGuiPlugin*, FwGuiLogLevel level, const char* message) { g_logLevel = level; g_log = message ? message : ""; }
 }
 
 int main() {
@@ -31,7 +41,8 @@ int main() {
     panel.register_type = reg; panel.get_number = num; panel.set_property = set;
     FwGuiCanvasApi canvasApi{}; canvasApi.struct_size = sizeof canvasApi;
     canvasApi.create = canvasCreate; canvasApi.destroy = canvasDestroy;
-    FwGuiHostApi api{}; api.struct_size = sizeof api; api.panel_control = &panel; api.canvas = &canvasApi;
+    FwGuiCoreApi core{}; core.struct_size = sizeof core; core.log = logFn;
+    FwGuiHostApi api{}; api.struct_size = sizeof api; api.panel_control = &panel; api.canvas = &canvasApi; api.core = &core;
     fwgui::Host host(reinterpret_cast<FwGuiHost*>(0x1), &api, reinterpret_cast<FwGuiPlugin*>(0x2));
 
     fwgui::ControlTypeInfo info; info.id = "box"; info.label = "Box"; info.width = 50; info.height = 20;
@@ -71,5 +82,13 @@ int main() {
         assert(owned && g_canvasCreated == 1);
     }
     assert(g_canvasDestroyed == 1);
+
+    // A throwing constructor: NULL state, and an error log that names it.
+    fwgui::ControlTypeInfo tinfo; tinfo.id = "throws"; tinfo.label = "Throws";
+    assert(fwgui::RegisterControlType<Throws>(host, tinfo) == FWGUI_OK);
+    void* none = g_registered.callbacks.create(g_registered.type_user, reinterpret_cast<FwGuiControl*>(0x3));
+    assert(none == nullptr);
+    assert(g_logLevel == FWGUI_LOG_ERROR);
+    assert(g_log.find("create") != std::string::npos && g_log.find("no sensor") != std::string::npos);
     return 0;
 }
