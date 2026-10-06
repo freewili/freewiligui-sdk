@@ -38,10 +38,10 @@ All callbacks run on the UI thread.
 
 | Callback | When it runs |
 |---|---|
-| `create` | A control is placed, loaded, pasted, restored by undo, or its type becomes available again. Returns your per-instance state. |
+| `create` | A control is placed, loaded, pasted, restored by undo, or its type becomes available again. Returns your per-instance state; it may return NULL for a stateless control, which is still live. In C++, a constructor that throws leaves the control created blank and the error is logged. |
 | `paint` | Every frame the control is visible, including while editing. |
 | `input` | Mouse, wheel, key, character and focus events, in run mode only. Return 1 when you used the event. |
-| `property_changed` | After the host stores a new value for a property, whether edited in the grid, loaded, or set with `set_property`. Optional. |
+| `property_changed` | After the host stores a new value for a property edited in the grid or set with `set_property`. It is not called when a control is loaded. A `set_property` made inside a callback is delivered after that callback returns. Optional. |
 | `destroy` | The control is deleted, the panel or project is closed, the type is unregistered, or the plugin stops. |
 
 `destroy` is not called for a plugin that has faulted; its instances are
@@ -84,7 +84,7 @@ the grid offers the same signal picker as built-in controls. In C++ use
 
 - `read_signal` evaluates the property's binding. App signals, `=` rThon
   expressions and device providers work as they do for built-in controls.
-- `write_signal` sets the bound signal.
+- `write_signal` sends numbers only. A text value is accepted only if it parses as a number.
 - An empty binding returns `FWGUI_ERR_NOT_FOUND`.
 
 ## Drawing
@@ -105,6 +105,9 @@ The GPanel canvas has limits. Draw with rectangles, rounded rectangles,
 stroked paths, lines and text:
 
 - Filled arcs and `fill_triangle` may not render on the GPU canvas.
+- On the GPanel canvas, filled paths (`fill()`), `fill_triangle`, rotated or
+  skewed `fill_rect` and `draw_image_rgba` may draw nothing. Use axis-aligned
+  `fill_rect`, `fill_stroke_round_rect`, strokes and text.
 - `arc_to` is not drawn.
 - There is one font. `SetFont` changes size and style only.
 - The clip is a rectangle.
@@ -135,7 +138,7 @@ placeholder with a dashed outline, the type label, and one line of status:
 - Plugin `<id>` is not installed
 - Plugin `<id>` is disabled
 - Plugin `<id>` stopped after an error
-- Plugin controls need the desktop app (web build)
+- Plugin controls need the desktop app
 
 A placeholder keeps all its properties; they can be edited as text, and saving
 writes them back unchanged. When the plugin is installed or enabled again, the

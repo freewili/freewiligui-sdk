@@ -71,7 +71,7 @@ Windows, the file is `my_plugin.dll`.
 1. Copy the library into `plugins/` beside the FreeWili GUI executable, or
    into the application's data directory under `plugins/`.
 2. Restart FreeWili GUI and open **Setup > Manage plugins** to check its
-   status and enable it. Enable/disable changes take effect on restart.
+   status and enable it. Enable/disable changes take effect immediately.
 3. Open the registered view from the application's menus.
 
 For development, `FWCOM_PLUGIN_DIR` can point to an additional plugin
@@ -94,5 +94,4 @@ subdirectory when applicable). Install them the same way as the template.
 - [FreeWili dashboard](../examples/freewili_dashboard): device discovery,
   asynchronous jobs, cancellation, and an agent-readable status tool. This
   example also fetches JSON for Modern C++ from its public repository.
-
 - [Panel slider](../examples/example_panel_control): a Graphical Panel control with no ImGui dependency. To write your own, start from `plugin-template-control` and read [panel controls](PANEL_CONTROLS.md).
