@@ -31,7 +31,13 @@ struct Slider {
     }
     void Paint(fwgui::Canvas& c, const FwGuiPaintInfo& info) {
         width = info.width;
-        const double cy = info.height / 2, pad = 10, trackW = std::max(1.0, info.width - 2 * pad);
+        // The value sits on a pill of the track color in the top-left corner,
+        // so it reads on light and dark panels alike. The pill keeps a 3 px
+        // margin from the top edge (clear of the focus ring) and the track
+        // moves down far enough that the knob never touches it.
+        const double pillY = 3, pillH = 13, knobH = 18;
+        const double cy = std::max(info.height / 2, pillY + pillH + 1 + knobH / 2);
+        const double pad = 10, trackW = std::max(1.0, info.width - 2 * pad);
         const double v = Value(), knobX = pad + trackW * v / 100.0;
         const auto track = static_cast<uint32_t>(control.Number("track_color"));
         c.SetFillStyle(track);
@@ -39,15 +45,12 @@ struct Slider {
         c.SetFillStyle(static_cast<uint32_t>(control.Number("knob_color")));
         c.FillRect(pad, cy - 3, knobX - pad, 6);
         c.SetStrokeStyle(0xFFFFFFFFu);
-        c.FillStrokeRoundRect(knobX - 7, cy - 11, 14, 22, 4);
-        // The value sits on a pill of the track color above the knob, so it
-        // reads on light and dark panels alike.
+        c.FillStrokeRoundRect(knobX - 7, cy - knobH / 2, 14, knobH, 4);
         char text[16]; std::snprintf(text, sizeof text, "%.0f", v);
         c.SetFont(10);
-        const double textW = c.MeasureText(text).width, pillH = 11;
-        const double pillY = std::max(0.0, cy - 11 - pillH);
+        const double textW = c.MeasureText(text).width;
         c.SetFillStyle(track); c.SetStrokeStyle(track);
-        c.FillStrokeRoundRect(pad - 3, pillY, textW + 6, pillH, 3);
+        c.FillStrokeRoundRect(pad - 5, pillY, textW + 10, pillH, 4);
         c.SetFillStyle(0xFFE0E0E0u); c.SetTextBaseline(FWGUI_CANVAS_BASELINE_MIDDLE);
         c.FillText(text, pad, pillY + pillH / 2);
         if (info.flags & FWGUI_PAINT_FOCUSED) { c.SetStrokeStyle(0xFF4DA3FFu); c.StrokeRect(1, 1, info.width - 2, info.height - 2); }
