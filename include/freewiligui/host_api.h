@@ -3,6 +3,7 @@
 
 #include <freewiligui/freewili.h>
 #include <freewiligui/plugin.h>
+#include <freewiligui/panel_control.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,7 +92,6 @@ typedef struct FwGuiMcpApi {
                                    const char* name);
 } FwGuiMcpApi;
 
-typedef struct FwGuiCanvas FwGuiCanvas;
 typedef struct FwGuiCanvasImage FwGuiCanvasImage;
 
 typedef struct FwGuiCanvasTextMetrics {
@@ -206,6 +206,8 @@ struct FwGuiHostApi {
     const FwGuiCanvasApi* canvas;
     const FwGuiMcpApi* mcp;
     const FwGuiFreeWiliApi* freewili;
+    /* Appended in SDK 0.2.0 (ABI 1). Check FWGUI_HAS(api, panel_control). */
+    const FwGuiPanelControlApi* panel_control;
 };
 
 #ifdef __cplusplus

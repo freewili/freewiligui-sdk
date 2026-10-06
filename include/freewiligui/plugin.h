@@ -58,6 +58,15 @@ typedef struct FwGuiBuildFingerprint {
         FWGUI_FP_TEST_ENGINE                    \
     }
 
+/* A plugin that never links ImGui/ImPlot (panel controls, MCP tools).
+ * Set FWGUI_PLUGIN_NO_IMGUI in FwGuiPluginDesc.flags with this fingerprint. */
+#define FWGUI_FINGERPRINT_INIT_NO_IMGUI           {                                                 (uint32_t)FWGUI_ABI_VERSION, 0u, 0u, 0u, 0u,         FWGUI_FP_DEBUG_BUILD, FWGUI_FP_MSC_VER, FWGUI_FP_CRT_DYNAMIC, 0u     }
+
+typedef uint32_t FwGuiPluginFlags;
+enum FwGuiPluginFlagBits {
+    FWGUI_PLUGIN_NO_IMGUI = 0x1u
+};
+
 typedef struct FwGuiFrameInfo {
     uint32_t struct_size;
     double dt;
@@ -127,6 +136,8 @@ typedef struct FwGuiPluginDesc {
     const char* description;
     const char* homepage;
     FwGuiBuildFingerprint build;
+    /* Appended in SDK 0.2.0 (ABI 1). FwGuiPluginFlagBits. */
+    FwGuiPluginFlags flags;
 } FwGuiPluginDesc;
 
 typedef struct FwGuiPluginVTable {
