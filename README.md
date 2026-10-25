@@ -1,7 +1,7 @@
 # FreeWili GUI SDK
 
 Build native plugins for [FreeWili GUI](https://github.com/freewili/freewili-gui)
-with a standalone C99 ABI and C++17 authoring layer. SDK version **0.2.0**
+with a standalone C99 ABI and C++17 authoring layer. SDK version **0.3.0**
 uses **ABI version 1**.
 
 ## Features

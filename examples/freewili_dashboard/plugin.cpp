@@ -1,3 +1,4 @@
+#include "freewiligui_browser.h"
 #include <freewiligui/plugin.hpp>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -91,6 +92,6 @@ private:
 static const FwGuiPluginDesc descriptor = {
     sizeof(FwGuiPluginDesc), "org.freewili.dashboard", "FreeWili Dashboard",
     "1.0.0", "FreeWili", "Runs device commands through owner-scoped jobs.",
-    nullptr, FWGUI_FINGERPRINT_INIT
+    nullptr, FWGUI_FINGERPRINT_INIT, 0, FWGUI_BROWSER_INFO
 };
 FWGUI_PLUGIN_MAIN(freewili_dashboard, &descriptor, DeviceDashboard)

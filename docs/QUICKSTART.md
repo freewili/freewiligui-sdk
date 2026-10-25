@@ -35,8 +35,38 @@ and POSIX shells. For a separate project, replace the install path with the
 absolute path to `sdk-install`.
 
 Set your plugin's unique ID in both `CMakeLists.txt` and the descriptor in
-`src/plugin.cpp`. Set its display name, version, and author in the descriptor.
-The template registers a view and a Markdown help page during startup.
+`src/plugin.cpp`. Set its display name, version, author and description in
+the descriptor; all of them are required, only the homepage is optional.
+
+### The picture and the help page are required
+
+FreeWili GUI's plugin browser (**Setup > Manage plugins**) shows a picture,
+a type and an Overview page for every plugin, read from the library before
+the plugin starts. Since SDK 0.3.0 a plugin that does not embed them does
+not load. The template's `CMakeLists.txt` embeds them with
+
+~~~cmake
+freewiligui_browser_assets(my_plugin KINDS VIEW
+    THUMBNAIL assets/preview.png
+    HELP help.md)
+~~~
+
+and the descriptor in `src/plugin.cpp` includes the generated
+`freewiligui_browser.h` and ends with `0, FWGUI_BROWSER_INFO`.
+
+- `assets/preview.png` is the picture. The template ships a placeholder so
+  the first build loads; replace it with a real screenshot of the finished
+  view before you ship. An agent working inside FreeWili GUI gets exactly
+  that PNG from the application's `view_screenshot` MCP tool. Limits: PNG,
+  1 to 4096 pixels per side, at most 16 MiB.
+- `help.md` is the Overview page: Markdown, at most 1 MiB, not blank.
+  Rewrite the template's text to describe your view.
+
+`KINDS` lists what the plugin supplies: `VIEW`, `PANEL_CONTROL` and/or
+`MCP_TOOL`. Both files are configure dependencies, so editing them and
+rebuilding is enough. A missing, blank or invalid file fails the configure
+step with a message naming the problem. The full contract is in
+[BROWSER_CONTRACT.md](BROWSER_CONTRACT.md).
 
 The helper requires ID, SYMBOL, and SOURCES. It accepts
 PLUGIN_OUTPUT_DIRECTORY and OUTPUT_NAME. Each target also has a
@@ -70,8 +100,10 @@ Windows, the file is `my_plugin.dll`.
 
 1. Copy the library into `plugins/` beside the FreeWili GUI executable, or
    into the application's data directory under `plugins/`.
-2. Restart FreeWili GUI and open **Setup > Manage plugins** to check its
-   status and enable it. Enable/disable changes take effect immediately.
+2. Restart FreeWili GUI, or use **Reload** in **Setup > Manage plugins**,
+   and check the plugin's status there. The browser shows your picture
+   beside the title and your help page on the Help tab. Enable/disable
+   changes take effect immediately.
 3. Open the registered view from the application's menus.
 
 For development, `FWCOM_PLUGIN_DIR` can point to an additional plugin
