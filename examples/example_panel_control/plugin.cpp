@@ -1,3 +1,4 @@
+#include "freewiligui_browser.h"
 #include <freewiligui/panel_control.hpp>
 #include <algorithm>
 #include <cstdio>
@@ -84,7 +85,7 @@ public:
 
 const FwGuiPluginDesc kDesc = {
     sizeof(FwGuiPluginDesc), "org.freewili.panel-slider", "Panel Slider", "1.0.0", "FreeWili",
-    "A slider control for Graphical Panels", nullptr, FWGUI_FINGERPRINT_INIT_NO_IMGUI, FWGUI_PLUGIN_NO_IMGUI
+    "A slider control for Graphical Panels", nullptr, FWGUI_FINGERPRINT_INIT_NO_IMGUI, FWGUI_PLUGIN_NO_IMGUI, FWGUI_BROWSER_INFO
 };
 }
 FWGUI_PLUGIN_MAIN_NO_IMGUI(freewili_panel_slider, &kDesc, SliderPlugin)

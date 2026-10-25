@@ -2,6 +2,7 @@
 #define FREEWILIGUI_PLUGIN_H
 
 #include <freewiligui/types.h>
+#include <freewiligui/browser.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -149,7 +150,19 @@ typedef struct FwGuiPluginDesc {
     FwGuiBuildFingerprint build;
     /* Appended in SDK 0.2.0 (ABI 1). FwGuiPluginFlagBits. */
     FwGuiPluginFlags flags;
+    /* Appended in SDK 0.3.0, ABI 1. Mandatory for new descriptors. */
+    const FwGuiPluginBrowserInfo* browser;
 } FwGuiPluginDesc;
+
+static inline const char* fwguiPluginDescError(const FwGuiPluginDesc* desc) {
+    if (!desc || desc->struct_size < offsetof(FwGuiPluginDesc, browser) + sizeof(desc->browser))
+        return "SDK 0.3.0 requires the complete plugin descriptor";
+    if (!fwguiBrowserHasText(desc->id) || !fwguiBrowserHasText(desc->name) ||
+        !fwguiBrowserHasText(desc->version) || !fwguiBrowserHasText(desc->author) ||
+        !fwguiBrowserHasText(desc->description))
+        return "Plugin id, name, version, author and description are required";
+    return fwguiBrowserInfoError(desc->browser);
+}
 
 typedef struct FwGuiPluginVTable {
     uint32_t struct_size;
