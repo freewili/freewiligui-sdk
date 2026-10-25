@@ -32,6 +32,8 @@ extern "C" {
 
 typedef struct FwGuiHost FwGuiHost;
 typedef struct FwGuiPlugin FwGuiPlugin;
+/* The Canvas table's handle (host_api.h); panel controls paint into it. */
+typedef struct FwGuiCanvas FwGuiCanvas;
 
 typedef struct FwGuiStrView {
     const char* data;

@@ -20,4 +20,6 @@ freewiligui_add_plugin(freewili_dashboard
     PLUGIN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/plugins")
 if(TARGET freewili_dashboard)
     target_link_libraries(freewili_dashboard PRIVATE "${_json_target}")
+    freewiligui_browser_assets(freewili_dashboard KINDS VIEW MCP_TOOL
+        THUMBNAIL assets/preview.png HELP help.md)
 endif()

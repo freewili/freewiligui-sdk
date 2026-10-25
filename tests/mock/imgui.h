@@ -1,6 +1,7 @@
 #ifndef TEST_IMGUI_H
 #define TEST_IMGUI_H
 #include <stddef.h>
+#define IMGUI_VERSION "mock"
 #define IMGUI_VERSION_NUM 19280
 struct ImGuiContext {};
 struct ImGuiIO { int value; };

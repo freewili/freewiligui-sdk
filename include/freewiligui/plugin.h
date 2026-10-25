@@ -2,6 +2,7 @@
 #define FREEWILIGUI_PLUGIN_H
 
 #include <freewiligui/types.h>
+#include <freewiligui/browser.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +58,26 @@ typedef struct FwGuiBuildFingerprint {
         FWGUI_FP_CRT_DYNAMIC,                   \
         FWGUI_FP_TEST_ENGINE                    \
     }
+
+/* A plugin that never links ImGui/ImPlot (panel controls, MCP tools).
+ * Set FWGUI_PLUGIN_NO_IMGUI in FwGuiPluginDesc.flags with this fingerprint. */
+#define FWGUI_FINGERPRINT_INIT_NO_IMGUI        \
+    {                                         \
+        (uint32_t)FWGUI_ABI_VERSION,           \
+        0u,                                     \
+        0u,                                     \
+        0u,                                     \
+        0u,                                     \
+        FWGUI_FP_DEBUG_BUILD,                   \
+        FWGUI_FP_MSC_VER,                       \
+        FWGUI_FP_CRT_DYNAMIC,                   \
+        0u                                      \
+    }
+
+typedef uint32_t FwGuiPluginFlags;
+enum FwGuiPluginFlagBits {
+    FWGUI_PLUGIN_NO_IMGUI = 0x1u
+};
 
 typedef struct FwGuiFrameInfo {
     uint32_t struct_size;
@@ -127,7 +148,21 @@ typedef struct FwGuiPluginDesc {
     const char* description;
     const char* homepage;
     FwGuiBuildFingerprint build;
+    /* Appended in SDK 0.2.0 (ABI 1). FwGuiPluginFlagBits. */
+    FwGuiPluginFlags flags;
+    /* Appended in SDK 0.3.0, ABI 1. Mandatory for new descriptors. */
+    const FwGuiPluginBrowserInfo* browser;
 } FwGuiPluginDesc;
+
+static inline const char* fwguiPluginDescError(const FwGuiPluginDesc* desc) {
+    if (!desc || desc->struct_size < offsetof(FwGuiPluginDesc, browser) + sizeof(desc->browser))
+        return "SDK 0.3.0 requires the complete plugin descriptor";
+    if (!fwguiBrowserHasText(desc->id) || !fwguiBrowserHasText(desc->name) ||
+        !fwguiBrowserHasText(desc->version) || !fwguiBrowserHasText(desc->author) ||
+        !fwguiBrowserHasText(desc->description))
+        return "Plugin id, name, version, author and description are required";
+    return fwguiBrowserInfoError(desc->browser);
+}
 
 typedef struct FwGuiPluginVTable {
     uint32_t struct_size;

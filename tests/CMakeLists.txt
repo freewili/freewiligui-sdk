@@ -33,6 +33,11 @@ set_property(TARGET freewiligui_callback_guards PROPERTY CXX_STANDARD 17)
 freewiligui_enable_test_assertions(freewiligui_callback_guards)
 add_test(NAME callback_guards COMMAND freewiligui_callback_guards)
 
+add_executable(freewiligui_panel_control test_panel_control.cpp)
+target_link_libraries(freewiligui_panel_control PRIVATE freewiligui::sdk)
+set_property(TARGET freewiligui_panel_control PROPERTY CXX_STANDARD 17)
+freewiligui_enable_test_assertions(freewiligui_panel_control)
+add_test(NAME panel_control_helpers COMMAND freewiligui_panel_control)
 add_library(freewiligui_shared_c MODULE shared_plugin.c)
 target_link_libraries(freewiligui_shared_c PRIVATE freewiligui::sdk)
 target_compile_definitions(freewiligui_shared_c PRIVATE FWGUI_PLUGIN_SHARED)
@@ -49,6 +54,19 @@ endif()
 add_test(NAME shared_plugin_exports
     COMMAND "${CMAKE_COMMAND}"
         "-DMODULE=$<TARGET_FILE:freewiligui_shared_c>"
+        "-DINSPECTOR=${_freewiligui_symbol_inspector}"
+        "-DSTYLE=${_freewiligui_symbol_style}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/check_exports.cmake")
+
+# A panel-control module that must build with NO ImGui on any include path.
+add_library(freewiligui_shared_control MODULE shared_control.c)
+target_link_libraries(freewiligui_shared_control PRIVATE freewiligui::sdk)
+target_compile_definitions(freewiligui_shared_control PRIVATE FWGUI_PLUGIN_SHARED)
+set_property(TARGET freewiligui_shared_control PROPERTY C_STANDARD 99)
+set_target_properties(freewiligui_shared_control PROPERTIES PREFIX "")
+add_test(NAME shared_control_exports
+    COMMAND "${CMAKE_COMMAND}"
+        "-DMODULE=$<TARGET_FILE:freewiligui_shared_control>"
         "-DINSPECTOR=${_freewiligui_symbol_inspector}"
         "-DSTYLE=${_freewiligui_symbol_style}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/check_exports.cmake")

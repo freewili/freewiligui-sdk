@@ -1,3 +1,4 @@
+#include "freewiligui_browser.h"
 #include <freewiligui/plugin.hpp>
 #include <algorithm>
 #include <cmath>
@@ -59,6 +60,6 @@ private:
 static const FwGuiPluginDesc descriptor = {
     sizeof(FwGuiPluginDesc), "org.freewili.canvas", "Canvas Gauge", "1.0.0",
     "FreeWili", "Shows portable Canvas drawing from a plugin.", nullptr,
-    FWGUI_FINGERPRINT_INIT
+    FWGUI_FINGERPRINT_INIT, 0, FWGUI_BROWSER_INFO
 };
 FWGUI_PLUGIN_MAIN(freewili_example_canvas, &descriptor, CanvasExample)
