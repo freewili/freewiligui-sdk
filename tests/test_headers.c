@@ -14,6 +14,7 @@ ASSERT_AT_COMPILE(canvas_has_61_callbacks,
         / sizeof(void*) + 1 == 61);
 ASSERT_AT_COMPILE(root_order_5, offsetof(FwGuiHostApi, freewili) < offsetof(FwGuiHostApi, panel_control));
 ASSERT_AT_COMPILE(desc_flags_appended, offsetof(FwGuiPluginDesc, build) < offsetof(FwGuiPluginDesc, flags));
+ASSERT_AT_COMPILE(desc_browser_appended, offsetof(FwGuiPluginDesc, flags) < offsetof(FwGuiPluginDesc, browser));
 ASSERT_AT_COMPILE(panel_api_order_1, offsetof(FwGuiPanelControlApi, register_type) < offsetof(FwGuiPanelControlApi, unregister_type));
 ASSERT_AT_COMPILE(panel_api_order_2, offsetof(FwGuiPanelControlApi, unregister_type) < offsetof(FwGuiPanelControlApi, get_number));
 ASSERT_AT_COMPILE(panel_api_order_3, offsetof(FwGuiPanelControlApi, get_number) < offsetof(FwGuiPanelControlApi, get_string));
@@ -46,7 +47,10 @@ int main(void) {
     FwGuiHostApi api = {0};
     FwGuiFrameInfo frame = {0};
     FwGuiViewCtx view = {0};
-    return (FWGUI_SDK_VERSION_MAJOR == 0 && FWGUI_SDK_VERSION_MINOR == 2 &&
+    FwGuiPluginDesc desc = {0};
+    desc.struct_size = sizeof(FwGuiPluginDesc);
+    return (FWGUI_SDK_VERSION_MAJOR == 0 && FWGUI_SDK_VERSION_MINOR == 3 &&
+            fwguiPluginDescError(&desc) != NULL && fwguiBrowserInfoError(NULL) != NULL &&
             FWGUI_HAS(&api, panel_control) == 0 && FWGUI_ABI_VERSION == 1 &&
             offsetof(FwGuiHostApi, core) < offsetof(FwGuiHostApi, freewili) &&
             offsetof(FwGuiFrameInfo, dt) < offsetof(FwGuiFrameInfo, frame_index) &&
